@@ -30,35 +30,35 @@ public class NotificationHub : Hub
     public override async Task OnConnectedAsync()
     {
         const string functionName = nameof(OnConnectedAsync);
-        var username = GetUsername();
+        var email = GetEmail();
 
-        if (string.IsNullOrWhiteSpace(username))
+        if (string.IsNullOrWhiteSpace(email))
         {
             _logger.LogWarning("{Function}: User number missing during connection.", functionName);
             await base.OnConnectedAsync();
             return;
         }
 
-        _connectedUserManager.AddUser(username, Context.ConnectionId, GetUserRoles());
-        _logger.LogInformation("{Function}: Added user {User} with connection ID {ConnectionId}.", functionName, username, Context.ConnectionId);
+        _connectedUserManager.AddUser(email, Context.ConnectionId, GetUserRoles());
+        _logger.LogInformation("{Function}: Added user {User} with connection ID {ConnectionId}.", functionName, email, Context.ConnectionId);
 
         
         try
         {
             using var httpClient = _httpClientFactory.CreateClient("KutumbaLogistics");
-            var json = JsonSerializer.Serialize(new { username });
+            var json = JsonSerializer.Serialize(new { email });
             if (!GetUserRoles().Contains("User"))
             {
-                json = JsonSerializer.Serialize(new { username = "" });
+                json = JsonSerializer.Serialize(new { email = "" });
             }
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-            _logger.LogInformation("{Function}: Notifying backend({API}) about user connection: {User}", functionName, API_URL, username);
+            _logger.LogInformation("{Function}: Notifying backend({API}) about user connection: {User}", functionName, API_URL, email);
             var response = await httpClient.PostAsync(API_URL, content);
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("{Function}: Informed backend about user connection: {User}", functionName, username);
+                _logger.LogInformation("{Function}: Informed backend about user connection: {User}", functionName, email);
             }
             else
             {
@@ -68,7 +68,7 @@ public class NotificationHub : Hub
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "{Function}: Exception while notifying backend for user: {User}", functionName, username);
+            _logger.LogError(ex, "{Function}: Exception while notifying backend for user: {User}", functionName, email);
         }
 
         await base.OnConnectedAsync();
@@ -77,20 +77,22 @@ public class NotificationHub : Hub
     public override async Task OnDisconnectedAsync(Exception exception)
     {
         const string functionName = nameof(OnDisconnectedAsync);
-        var username = GetUsername();
+        var email = GetEmail();
 
-        if (!string.IsNullOrWhiteSpace(username))
+        if (!string.IsNullOrWhiteSpace(email))
         {
-            _connectedUserManager.RemoveUser(username, Context.ConnectionId);
-            _logger.LogInformation("{Function}: Removed user {User} with connection ID {ConnectionId}.", functionName, username, Context.ConnectionId);
+            _connectedUserManager.RemoveUser(email, Context.ConnectionId);
+            _logger.LogInformation("{Function}: Removed user {User} with connection ID {ConnectionId}.", functionName, email, Context.ConnectionId);
         }
 
         await base.OnDisconnectedAsync(exception);
     }
 
-    private string? GetUsername()
+    private string? GetEmail()
     {
-        return Context.User?.Identity?.Name;
+        var email = Context.User?.FindFirst(ClaimTypes.Email)?.Value
+         ?? Context.User?.FindFirst("email")?.Value;
+        return email;
     }
     private List<string> GetUserRoles()
     {
@@ -103,34 +105,34 @@ public class NotificationHub : Hub
     public async Task SendNotificationToUser(UserNotificationRequest request)
     {
         const string functionName = nameof(SendNotificationToUser);
-        var connections = _connectedUserManager.GetConnections(request.Username);
+        var connections = _connectedUserManager.GetConnections(request.Email);
 
         if (connections == null || connections.Count == 0)
         {
-            _logger.LogWarning("{Function}: No active connections for user {User}.", functionName, request.Username);
+            _logger.LogWarning("{Function}: No active connections for user {User}.", functionName, request.Email);
             return;
         }
 
         foreach (var connectionId in connections)
         {
-            _logger.LogInformation("{Function}: Sending notification to {User} via connection ID {ConnectionId}.", functionName, request.Username, connectionId);
+            _logger.LogInformation("{Function}: Sending notification to {User} via connection ID {ConnectionId}.", functionName, request.Email, connectionId);
             await Clients.Client(connectionId).SendAsync("ReceiveNotification", request);
         }
     }
     public async Task SendNotificationToAdmin(UserNotificationRequest request)
     {
         const string functionName = nameof(SendNotificationToAdmin);
-        var connections = _connectedUserManager.GetAdminConnections(request.Username);
+        var connections = _connectedUserManager.GetAdminConnections(request.Email);
 
         if (connections == null || connections.Count == 0)
         {
-            _logger.LogWarning("{Function}: No active connections for admin {Admin}.", functionName, request.Username);
+            _logger.LogWarning("{Function}: No active connections for admin {Admin}.", functionName, request.Email);
             return;
         }
 
         foreach (var connectionId in connections)
         {
-            _logger.LogInformation("{Function}: Sending notification to {Admin} via connection ID {ConnectionId}.", functionName, request.Username, connectionId);
+            _logger.LogInformation("{Function}: Sending notification to {Admin} via connection ID {ConnectionId}.", functionName, request.Email, connectionId);
             await Clients.Client(connectionId).SendAsync("ReceiveNotification", request);
         }
     }

@@ -78,7 +78,6 @@ public class Program
                     ValidIssuer = jwtUserSettings.Issuer,
                     ValidAudience = jwtUserSettings.Audience,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtUserSettings.Key)),
-                    NameClaimType = ClaimTypes.Name,
                     RoleClaimType = ClaimTypes.Role
                 };
 
@@ -116,7 +115,6 @@ public class Program
             {
                 policy.AuthenticationSchemes.Add("UserScheme");
                 policy.RequireAuthenticatedUser();
-                //policy.RequireRole("Vehicle");
 
             });
 
@@ -154,6 +152,7 @@ public class Program
         app.MapControllers();
         app.MapHub<NotificationHub>("/hubs/notificationhub")
             .RequireAuthorization("UserPolicy");  // <- Enforce only UserScheme clients
+       app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));;
         app.Run();
     }
 }

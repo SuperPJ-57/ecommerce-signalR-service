@@ -12,7 +12,7 @@ public class ConnectedUserManager
         _logger = logger;
     }
 
-    public void AddUser(string username, string connectionId, List<string> roles = null)
+    public void AddUser(string email, string connectionId, List<string> roles = null)
     {
         lock (_lock)
         {
@@ -20,77 +20,77 @@ public class ConnectedUserManager
             {
                 if (roles.Contains("Admin"))
                 {
-                    if (!_adminConnections.ContainsKey(username))
-                        _adminConnections[username] = new HashSet<string>();
+                    if (!_adminConnections.ContainsKey(email))
+                        _adminConnections[email] = new HashSet<string>();
 
-                    _adminConnections[username].Add(connectionId);
+                    _adminConnections[email].Add(connectionId);
 
-                    _logger.BeginScope("Admin Connection: {User} with connection ID {ConnectionId}", username, connectionId);
+                    _logger.BeginScope("Admin Connection: {User} with connection ID {ConnectionId}", email, connectionId);
                 }
                 if (roles.Contains("User"))
                 {
-                    if (!_userConnections.ContainsKey(username))
-                        _userConnections[username] = new HashSet<string>();
+                    if (!_userConnections.ContainsKey(email))
+                        _userConnections[email] = new HashSet<string>();
 
-                    _userConnections[username].Add(connectionId);
+                    _userConnections[email].Add(connectionId);
 
-                    _logger.BeginScope("User Connection: {User} with connection ID {ConnectionId}", username, connectionId);
+                    _logger.BeginScope("User Connection: {User} with connection ID {ConnectionId}", email, connectionId);
                 }
             }
             else
             {
-                _logger.LogWarning("No roles provided for user {User}.", username);
+                _logger.LogWarning("No roles provided for user {User}.", email);
             }
 
         }
     }
 
-    public void RemoveUser(string username, string connectionId)
+    public void RemoveUser(string email, string connectionId)
     {
         lock (_lock)
         {
-            if (_userConnections.ContainsKey(username))
+            if (_userConnections.ContainsKey(email))
             {
-                _userConnections[username].Remove(connectionId);
-                if (_userConnections[username].Count == 0)
+                _userConnections[email].Remove(connectionId);
+                if (_userConnections[email].Count == 0)
                 {
-                    _userConnections.Remove(username);
+                    _userConnections.Remove(email);
 
-                    _logger.BeginScope("User Disconnection: {User} with connection ID {ConnectionId}", username, connectionId);
+                    _logger.BeginScope("User Disconnection: {User} with connection ID {ConnectionId}", email, connectionId);
                 }
             }
-            if (_adminConnections.ContainsKey(username))
+            if (_adminConnections.ContainsKey(email))
             {
-                _adminConnections[username].Remove(connectionId);
-                if (_adminConnections[username].Count == 0)
+                _adminConnections[email].Remove(connectionId);
+                if (_adminConnections[email].Count == 0)
                 {
-                    _adminConnections.Remove(username);
+                    _adminConnections.Remove(email);
 
-                    _logger.BeginScope("Admin Disconnection: {User} with connection ID {ConnectionId}", username, connectionId);
+                    _logger.BeginScope("Admin Disconnection: {User} with connection ID {ConnectionId}", email, connectionId);
                 }
             }
         }
     }
 
-    public List<string> GetConnections(string username)
+    public List<string> GetConnections(string email)
     {
         lock (_lock)
         {
-            return _userConnections.ContainsKey(username)
-                ? _userConnections[username].ToList()
+            return _userConnections.ContainsKey(email)
+                ? _userConnections[email].ToList()
                 : new List<string>();
         }
     }
-    public List<string> GetAdminConnections(string username = null)
+    public List<string> GetAdminConnections(string email = null)
     {
         lock (_lock)
         {
-            if (username == null)
+            if (email == null)
             {
                 return _adminConnections.SelectMany(x => x.Value).ToList();
             }
-            return _adminConnections.ContainsKey(username)
-                ? _adminConnections[username].ToList()
+            return _adminConnections.ContainsKey(email)
+                ? _adminConnections[email].ToList()
                 : new List<string>();
         }
     }

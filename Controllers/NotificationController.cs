@@ -34,7 +34,7 @@ public class NotificationController : ControllerBase
         const string functionName = nameof(SendToUser);
         _logger.LogInformation("{Function}: Payload - {Payload}", functionName, JsonSerializer.Serialize(request));
 
-        var connections = _connectedUserManager.GetConnections(request.Username);
+        var connections = _connectedUserManager.GetConnections(request.Email);
         if (!connections.Any())
             return NotFound("User not connected.");
 

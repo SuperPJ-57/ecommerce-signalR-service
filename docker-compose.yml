@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  ecommerce-signalr-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ecommerce-signalr-service
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5010
+    volumes:
+      - ./appsettings.Production.json:/app/appsettings.Production.json:ro
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:5010/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-proxy-signalr
+    restart: unless-stopped
+    ports:
+      - "5010:8080" # External port 5010 maps to nginx inside port 8080
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl-certs:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - ecommerce-signalr-service
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
