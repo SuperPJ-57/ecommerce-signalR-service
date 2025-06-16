@@ -25,7 +25,7 @@ public class Program
             c.SwaggerDoc("v1", new OpenApiInfo
             {
                 Version = "v1",
-                Title = "KutumbaLogistics SignalR Api",
+                Title = "GetInstantMart SignalR Api",
                 Description = "This API is responsible for notification service"
             });
 
@@ -134,11 +134,8 @@ public class Program
         );
         var app = builder.Build();
 
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+        app.UseSwagger();
+        app.UseSwaggerUI();
 
         app.UseCors(x => x.AllowAnyMethod()
             .AllowAnyHeader()
