@@ -123,7 +123,7 @@ public class Program
                 policy.AuthenticationSchemes.Add("ServiceScheme");
                 policy.RequireAuthenticatedUser();
             });
-        }); 
+        });
 
         builder.Services.AddSignalR();
         builder.Services.AddSingleton<ConnectedUserManager>();
@@ -135,7 +135,13 @@ public class Program
         var app = builder.Build();
 
         app.UseSwagger();
-        app.UseSwaggerUI();
+        app.UseSwaggerUI(c =>
+        {
+
+            c.SwaggerEndpoint("/swagger/v1/swagger.json", "Your API V1");
+            c.RoutePrefix = ""; // Makes Swagger available at root `/`    
+        }
+        );
 
         app.UseCors(x => x.AllowAnyMethod()
             .AllowAnyHeader()
@@ -149,7 +155,7 @@ public class Program
         app.MapControllers();
         app.MapHub<NotificationHub>("/hubs/notificationhub")
             .RequireAuthorization("UserPolicy");  // <- Enforce only UserScheme clients
-       app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow }));;
+        app.MapGet("/health", () => Results.Ok(new { status = "Healthy", timestamp = DateTime.UtcNow })); ;
         app.Run();
     }
 }
